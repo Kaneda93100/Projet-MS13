@@ -2,7 +2,7 @@ import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 import tools as T
-
+import time
 
 Nx = 50; Ny = 20
 mu = (0.99, 0.8, 0.2, 0.78)
@@ -21,6 +21,43 @@ plt.colorbar()
 plt.xlabel("x"); plt.ylabel("y") 
 plt.tight_layout()
 plt.show()
+
+
+#### Performances
+
+np.random.seed(42)
+nbr_test = 50
+mu_sample = np.random.rand(4, nbr_test)
+mu = (0.99, 0.8, 0.2, 0.78)
+Nx = 50; Ny = Nx
+
+## Test TPFA
+start_tpfa = time.perf_counter()
+
+for i in range(50):
+    _,_,M,b = T.assemble_tpfa(Nx = Nx, Ny = Ny, mu = mu_sample[:,i])
+    U = T.solve_tpfa(M,b,Nx,Ny)
+
+stop_tpfa = time.perf_counter()
+
+print(f"\nTPFA : {stop_tpfa - start_tpfa}\n")
+
+## Test ROM
+
+start_rom = time.perf_counter()
+
+Phi = T.Construct_RB(NumberOfSnapshots = 50, NumberOfModes = 3, Nx = Nx, Ny = Ny)
+
+
+for i in range(50):
+    _,_,M,b = T.assemble_tpfa(Nx = Nx, Ny = Ny, mu = mu)
+    _,U_rom = T.solve_tpfa_rom(mu = mu_sample[:,i], Nx = Nx, Ny = Ny, Phi = Phi)
+
+stop_rom = time.perf_counter()
+
+print(f"\nROM : {stop_rom - start_rom}\n")
+
+exit(-1)
 
 #### Convergence
 

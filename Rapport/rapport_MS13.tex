@@ -58,7 +58,7 @@
 
 \title{Rapport de travail, Méthodes de bases réduites MS-13b}
 \author{Arthur Timbeau-Périvier, Master AMS IP-Paris et Paris-Saclay}
-\date{16/03/2026} % Delete this line to display the current date
+\date{31/03/2026} % Delete this line to display the current date
 
 %%% BEGIN DOCUMENT
 \begin{document}
@@ -362,7 +362,7 @@ spectral sur $L^2(\Omega)$ en un problème spectral sur $\mathbb{R}^{N_T}$ :
 \begin{equation}
     \mathbb{C}\Phi = \lambda\Phi
 \end{equation} 
-Et par construction, $\mathbb{C}$ est bien symétrique, comme annoncé. La matrice $\mathbb{C}$ est appelé \textit{Matrice de corrélation}, terminologie issue 
+Et par construction, $\mathbb{C}$ est bien symétrique et la base réduite calculé est bien orthonormale, comme annoncé. La matrice $\mathbb{C}$ est appelé \textit{Matrice de corrélation}, terminologie issue 
 de l'approche probabiliste du problème. 
 
 \vspace{0.3cm}
@@ -381,7 +381,7 @@ La résolution haute fidélité mène à la résolution d'un système
 \mathbb{A}(\mu)U = F
 \]
 avec $\mathbb{A}(\mu) \in \mathcal{M}_{n\times n}(\mathbb{R})$, $U, F \in \mathbb{R}^n$ et $n$ le nombre de noeud sur le 
-maillage. Pour résoudre le problème pour un nouveau $\mu$, on se place simplement dans la base réduite $P$ :
+maillage. Pour résoudre le problème pour un nouveau $\mu$, on se place simplement dans la base réduite (orthonormale) $P$ :
 \[
 PP^T\mathbb{A}(\mu)PP^TU = F(\mu)
 \]   
@@ -394,6 +394,14 @@ P^T\mathbb{A}(\mu)P\Phi = P^TF(\mu)
 
 et la fonction $f$ introduit en amont décrivant la relation entre les snapshots (dont on rêve d'avoir une formule explicite) 
 est approchée par la matrice $P^T\mathbb{A}(\mu)P$.  
+
+\vspace{0.3cm}
+
+En faisant une hypothèse supplémentaire sur la relation en $\mu$ et $\mathbb{A(\mu)}$ et $F(\mu)$, à savoir le fait
+que la matrice dépend de manière affine de $\mu$, on peut encore accélérer la procédure.
+
+\newpage
+
 
 \subsection{Résultats numériques et erreur}
 L'idée 

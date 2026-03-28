@@ -169,7 +169,7 @@ def solve_tpfa(M,b,Nx,Ny):
     return U 
 
 
-def Construct_RB(NumberOfSnapshots=50,Nx=50,Ny=50,NumberOfModes=10):
+def Construct_RB(NumberOfSnapshots=50,Nx=50,Ny=50,NumberOfModes=10, seed = np.random.rand(42)):
     """
         Fonction qui calcule la POD d'un ensemble de solution à une EDP paramétrée. 
         On effectue une réduction sur le nombre de paramètre en s'appuyant sur la décomposition en valeur
@@ -251,7 +251,7 @@ def solve_tpfa_rom(mu, Nx, Ny, Phi): ## Rom --> Reduced Order Model
     A_mu = Phi.transpose()@A@Phi 
     l_mu = Phi.transpose()@l
 
-    u_rom = np.linalg.inv(A_mu)@l_mu
+    u_rom = spla.spsolve(A_mu,l_mu)
     U_rom = (Phi@u_rom).reshape((Nx, Ny), order="F")
 
     return u_rom, U_rom
