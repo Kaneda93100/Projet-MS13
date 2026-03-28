@@ -1,0 +1,238 @@
+% !TEX TS-program = pdflatex
+% !TEX encoding = UTF-8 Unicode
+
+% Example of the Memoir class, an alternative to the default LaTeX classes such as article and book, with many added features built into the class itself.
+
+%\documentclass[12pt,a4paper]{memoir} % for a long document
+\documentclass[12pt,a4paper,article]{memoir} % for a short document
+
+\usepackage[utf8]{inputenc} % set input encoding to utf8
+
+% Don't forget to read the Memoir manual: memman.pdf
+
+%%% Examples of Memoir customization
+%%% enable, disable or adjust these as desired
+
+
+% This is from memman.pdf
+
+%%% \maketitle CUSTOMISATION
+% For more than trivial changes, you may as well do it yourself in a titlepage environment
+\pretitle{\begin{center}\sffamily\huge\MakeUppercase}
+\posttitle{\par\end{center}\vskip 0.5em}
+
+%%% ToC (table of contents) APPEARANCE
+\maxtocdepth{subsection} % include subsections
+\renewcommand{\cftchapterpagefont}{}
+\renewcommand{\cftchapterfont}{}     % no bold!
+
+%%% HEADERS & FOOTERS
+\pagestyle{ruled} % try also: empty , plain , headings , ruled , Ruled , companion
+
+%%% CHAPTERS
+\chapterstyle{hangnum} % try also: default , section , hangnum , companion , article, demo
+
+\renewcommand{\chaptitlefont}{\Huge\sffamily\raggedright} % set sans serif chapter title font
+\renewcommand{\chapnumfont}{\Huge\sffamily\raggedright} % set sans serif chapter number font
+
+%%% SECTIONS
+\hangsecnum % hang the section numbers into the margin to match \chapterstyle{hangnum}
+\maxsecnumdepth{subsection} % number subsections
+
+\setsecheadstyle{\Large\sffamily\raggedright} % set sans serif section font
+\setsubsecheadstyle{\large\sffamily\raggedright} % set sans serif subsection font
+
+%% END Memoir customization
+
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\newtheorem{theoreme}{Théorème}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{definition}{Définition}[section]
+\newtheorem{remarque}{Remarque}[section]
+
+
+\title{Rapport de travail, Méthodes de bases réduites MS-13b}
+\author{Arthur Timbeau-Périvier, Master AMS IP-Paris et Paris-Saclay}
+\date{16/03/2026} % Delete this line to display the current date
+
+%%% BEGIN DOCUMENT
+\begin{document}
+\maketitle
+
+\newpage
+\tableofcontents
+
+\newpage
+\section{Introduction}
+Le fil conducteur du cours de méthode de base réduite est l'EDP suivante : 
+\begin{equation}
+    \label{fil_conduc}
+    \begin{cases}
+    -\text{div}(A(\mu)\nabla u(x)) = f(x,\mu) & \text{sur } \Omega \\
+    u = 0 & \text{sur } \partial \Omega
+    \end{cases}
+\end{equation}
+
+
+où $\mu \in \mathbb{R}^n$ représente un ensemble de paramètres propres au problème au quel on s'intéresse. Si on désire la résoudre numériquement, la voie naïve 
+consiserait à la résoudre avec un schéma classique (comme une méthode d'éléments finis) pour un $\mu$ fixé, puis recommencer pour autant de jeu de paramètre pour lesquels on souhaite une solution. 
+Cette idée est trop simpliste. Elle coûterait chère en temps de calcul, puisqu'il faudrait recalculer le schéma numérique pour chaque paramètre, 
+mais surtout n'exploiterai pas un potentiel énorme gains de calcul intrasèque au problème posé. 
+
+\vspace{0.3cm}
+
+L'intuition est la suivante : connaître les solutions pour un certains nombre de jeu de paramètres suffit 
+pour approcher la solution pour un jeu de paramètre encore non résolu. C'est l'idée derrière la principale méthode étudiée durant ce cours, 
+la \textit{Proper Orthogonal Decomposition}, qui va consister en la réductions des dimensions du problème étudié. Une fois cette méthode mise en place, il va 
+être question de la tester contre une solution haute fidélité pour voir à quel point on peut s'appuyer sur cette méthode, et étudier un cas particulier dans lequel 
+elle ne fonctionne pas. 
+
+\vspace{0.3cm}
+
+Dans le TP1, on décrira plus en détail la POD, et on décrira une méthodes de résolution haute fidélité par rapport au quel on 
+comparera la méthode de base réduite, à savoir la \textit{méthode des volumes finis}. Dans le TP2, on étudiera un cas dans lequel 
+la méthode de base réduite est inéfficace et on essaiera de donner un sens à ce disfonctionnement. Et enfin, dans le TP3 et le TP4 on testera 
+l'efficacité de la méthode de base réduite contre une autre méthode haute fidélité : la \textit{méthode des éléments finis} ainsi que l'étude de 
+l'erreur a posteriori de cette dernière. 
+
+\newpage
+
+\section{TP1}
+\subsection{La méthode des volumes finis}
+La méthode des volumes finis repose sur la \textit{formule de Stokes}.
+
+\begin{theoreme}
+    Soit $u \in H^1(\Omega)$ où $\Omega$ est un ouvert de $\mathbb{R}^n$ à frontière lispschitzienne. Alors : 
+    \[
+        \int_{\Omega}\nabla u \, dx = \int_{\partial\Omega} u \cdot n\, d\sigma(x)
+    \]
+    où $\sigma$ défini une mesure sur $\partial \Omega$ et $n$ est une normale sortante de $\Omega$. 
+\end{theoreme}
+
+Ce résultat traduit une certaine relation entre une fonction à gradient intégrable et ses valeurs sur le bord du domaine (sous réserve que ce dernier soit suffisament régulier).
+
+\vspace{0.3cm}
+
+En intégrant \eqref{fil_conduc} sur $\Omega$, il vient :
+
+\[
+    \int_{\Omega}-\text{div}(A(\mu)\nabla u(x)) \, dx = \int_{\Omega}f(x,\mu) \, dx
+\]
+
+Maintenant, on applique la formule de Stokes au membre de gauche :
+\[
+    \int_{\Omega}-\text{div}(A(\mu)\nabla u(x)) \, dx = -\int_{\partial\Omega}A(\mu)\nabla u \cdot n\ \, d\sigma(x) 
+\]
+
+Ce qui permet d'écrire : 
+\begin{equation}
+    \label{main_rel_VF}
+    -\int_{\partial\Omega}A(\mu)\nabla u \cdot n\ \, d\sigma(x)  = \int_{\Omega}f(x,\mu) \, dx
+\end{equation}
+
+\vspace{0.3cm}
+
+On considère $\mathcal{M}_h$ un maillage du domaine $\Omega$ où $h$ est la longueur de la plus grande arête du maillage. On dénote 
+par $\mathcal{F}$ l'ensemble des arêtes de $\mathcal{M}_h$. Pour chaque élément $K$ de $\mathcal{M}_h$, on réécrit la relation \eqref{main_rel_VF} :
+
+\[
+    -\int_{K}A(\mu)\nabla u \cdot n \, d\sigma(x)  = \int_{K}f(x,\mu) \, dx
+\]
+
+Ce qui peut encore se redécomposer en somme d'intégrale sur les arêtes $e$ de $K$ :
+
+\[
+    \sum_{e \in \mathcal{F_K}}-\int_{e}A(\mu)\nabla u \cdot n_{e,K} \, d\sigma(x)  = \int_{K}f(x,\mu) \, dx
+\]
+où $n_{e,K}$ désigne l'arête sortante de l'arête $e$.
+
+L'objectif est de construire, à partir de cette dernière formulation, un schéma numérique qui va nous permettre de calculer 
+une solution approchée de $u$. Premièrement, on note 
+
+\begin{align*}
+ &\frac{1}{|K|}\int_{K}f(x,\mu) \, dx = f_K \\
+ &-\int_{e}A(\mu)\nabla u \cdot n_{e, K} \, d\sigma(x)
+\end{align*}
+
+Ensuite, on considère $L$ un élément de $\mathcal{M}_h$ qui partage une arête $e$ avec $K$. On a 
+\[
+    \int_{e}A(\mu)\nabla u \cdot n_{e,L} \, d\sigma(x) = -  \int_{e}A(\mu)\nabla u \cdot n_{e,K} \, d\sigma(x) 
+\]
+
+et on fait l'approximation 
+
+\[
+    A(\mu)\nabla u \approx A^{K}(\mu)\frac{(u_e - u_K)}{d(x_K, e)}
+\]
+où $x_K$ est le centre de l'élément $K$ et $u_K = \frac{1}{|K|}\int_{K}u \, dx$. On a donc
+
+\begin{align*}
+    &F_{K,e} \approx A^{K}(\mu)\frac{(u_e - u_K)}{d(x_K, e)} \sigma(e) \\
+    &F_{L,e} = -F_{K_e} 
+\end{align*}
+
+Ce qui, après quelques calculs, aboutit à
+
+\[
+F_{K,e} = \frac{A^{K}(\mu)A^{L}(\mu)\sigma(e)}{A^{K}(\mu)d(x_K, e) + A^{L}(\mu)d(x_L, e)}(u_K - u_L)
+\]
+\vspace{0.3cm}
+
+Ce qui nous donne le schéma que l'on souhaitait, car avec ce schéma on peut maintenant construire la matrice en parcourant chaque élément du maillage et
+en réajoutant de proche en proche les contributions de chaque arête d'un élément. Le second membre de construit à l'aide d'une méthode de quadrature
+pour approcher la valeur de $f_K$. 
+
+\vspace{0.3cm}
+
+C'est d'ailleurs ainsi que l'algorithme construit la matrice dans
+ le code. On calcule les contributions pour les arêtes horizontales, 
+on ajoute également les contributions des arêtes horizontales et on traite de manière spéciale les flux sur le bord du maillage. Il s'agit plus
+ou moins de la même formule que ci-dessus. Cela dépend de où ce trouve le noeud : s'il n'est pas sur le bord, alors on prend
+\[
+    F_{K,e} = -A^{K}(\mu)\frac{(u_e - u_K)}{d(x_K, e)}\sigma(e)
+\]
+
+Et ce qui aboutit, grâce à la condition de Dirichlet sur le bord, 
+
+\[
+    F_{K,e} = A^{K}(\mu)\frac{u_K}{d(x_K, e)}\sigma(e)
+\]
+
+Si le noeud se trouve sur l'arête, alors on a 
+\[
+    F_{K,e} = 0
+\]
+
+soit, pour $g \in L^2(\Omega)$ une condition de bord quelconque
+\[
+u_K = \frac{1}{\sigma(e)}\int_{e}g \, d\sigma(x)
+\] 
+Et dans notre cas : 
+\[
+    u_K = 0
+\]
+
+Une fois que la matrice des volumes finis et que le second membre sont assemblés, il n'y a plus qu'à résoudre le système.
+\subsection{POD et interprétation}
+\subsection{Résultats numériques et erreur}
+L'idée 
+
+\newpage
+
+\section{TP2}
+\subsection{Epaisseur de Kolmogorov}
+\subsection{Cas particulier}
+
+\newpage
+
+\section{TP3 et TP4}
+\subsection{Base réduite contre les éléments finis}
+\subsection{Erreur a posteriori}
+
+
+\end{document}

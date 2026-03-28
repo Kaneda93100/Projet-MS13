@@ -24,7 +24,6 @@ def generate_translation_snapshots(Ne, n_mu,x0 = 0, x1 = 94, delta = delta):
     # n_mu values between x0 and x1
     seed = np.random.seed(42)
     mu_values = np.linspace(x0, x1, n_mu)
-    #mu_values =x0*np.eye(1,n_mu) + (x1-x0)*np.random.rand(1, n_mu)
 
     snapshots = np.zeros((Ne, n_mu))
 
@@ -45,6 +44,26 @@ plt.ylabel("u(x)")
 plt.tight_layout()
 plt.show()
 
+x = np.linspace(0,94, 300)
+x_mu = np.linspace(0,94, 100)
+
+u_x5 = f(x[5], x_mu, delta)
+u_x10 = f(x[15], x_mu, delta)
+u_x15 = f(x[25], x_mu, delta)
+u_x20 = f(x[35], x_mu, delta)
+u_x30 = f(x[45], x_mu, delta)
+
+plt.plot(x_mu, u_x5)
+plt.plot(x_mu, u_x10)
+plt.plot(x_mu, u_x15)
+plt.plot(x_mu, u_x20)
+plt.plot(x_mu, u_x30)
+plt.xlabel("mu")
+plt.ylabel("mu |-> u(x,mu)")
+plt.tight_layout()
+plt.show()
+
+exit(-1)
 
 """ OFFLINE """
 """ POD """
@@ -133,7 +152,7 @@ def compute_kolmogorov_decay(Snapshots, x,ReducedBasis):
     ReducedBasis: basis functions
     """
 
-    NumberOfSnapshots, Ndofs = Snapshots.shape
+    Ndofs,NumberOfSnapshots = Snapshots.shape
     NumberOfModes = ReducedBasis.shape[0]
     dx = np.abs(x[0] - x[1])
     #print(np.shape(ReducedBasis))
@@ -157,13 +176,13 @@ def compute_kolmogorov_decay(Snapshots, x,ReducedBasis):
 # Test
 # -------------------------
 NumberOfSnapshots = 100
-Ne = 100
-NumberOfModes = 50
+Ne = 90
+NumberOfModes = 95
 
 ReducedBasis,Snapshots,_,_= Construct_RB(NumberOfSnapshots=NumberOfSnapshots,Ne=Ne,NumberOfModes=NumberOfModes)
 
-x0=-100
-x1=100
+x0=-95
+x1=95
 x = np.linspace(x0, x1, Ne + 1)
 dmax = compute_kolmogorov_decay(Snapshots,x, ReducedBasis)
 
