@@ -25,37 +25,69 @@ plt.show()
 
 #### Performances
 
+
 np.random.seed(42)
 nbr_test = 50
 mu_sample = np.random.rand(4, nbr_test)
 mu = (0.99, 0.8, 0.2, 0.78)
-Nx = 50; Ny = Nx
+Nx = 10; Ny = Nx
 
 ## Test TPFA
-start_tpfa = time.perf_counter()
 
+print("\n\nDébut du test TPFA\n\n")
+start_tpfa = time.perf_counter()
 for i in range(50):
     _,_,M,b = T.assemble_tpfa(Nx = Nx, Ny = Ny, mu = mu_sample[:,i])
     U = T.solve_tpfa(M,b,Nx,Ny)
-
 stop_tpfa = time.perf_counter()
 
 print(f"\nTPFA : {stop_tpfa - start_tpfa}\n")
 
 ## Test ROM
 
-start_rom = time.perf_counter()
-
+print("\n\nConstruction de la base réduite\n\n")
+start_rb = time.perf_counter()
 Phi = T.Construct_RB(NumberOfSnapshots = 50, NumberOfModes = 3, Nx = Nx, Ny = Ny)
+stop_rb = time.perf_counter()
+print(f"RB : {stop_rb - start_rb}\n")
 
+print("\n\nDébut du test ROM\n\n")
 
+start_rom = time.perf_counter()
 for i in range(50):
-    _,_,M,b = T.assemble_tpfa(Nx = Nx, Ny = Ny, mu = mu)
-    _,U_rom = T.solve_tpfa_rom(mu = mu_sample[:,i], Nx = Nx, Ny = Ny, Phi = Phi)
-
+    _,_,M,b = T.assemble_tpfa(Nx = Nx, Ny = Ny, mu = mu_sample[:,i])
+    _,U_rom = T.solve_tpfa_rom(mu = mu_sample[:,i], Nx = Nx, Ny = Ny, Phi = Phi, A = M, l = b)
 stop_rom = time.perf_counter()
 
 print(f"\nROM : {stop_rom - start_rom}\n")
+
+
+perf_hf = [0.2603350999997929, 0.6296214999965741, 1.123014199998579, 1.8335791999998037, 2.755822500002978, 6.196164299995871, 15.358156100002816,129.4399154999992]
+perf_rom = [0.3095513000007486, 0.9868257999987691, 1.84800279999763, 2.930363399995258,  4.271860499997274, 4.3482680000015534, 9.526180599998042,65.14382860000478]
+perf_rb = [0.3891774000003352, 0.9403516999955173, 1.7942659000036656, 2.8046219000025303, 4.7663010000032955, 6.613594000002195, 17.091368100002, 130.68198700000357]
+x = [30, 50, 70, 90, 110, 130, 200, 500]
+
+
+plt.figure()
+plt.plot(x,perf_rom, "o-", label="ROM")
+plt.plot(x,perf_hf, "s-", label="Haute fidélité")
+#plt.plot(x,perf_rb, "^-", label="Base réduite")
+plt.xlabel("N")
+plt.ylabel("Temps (s)")
+plt.title("Comparaison des performances")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+plt.figure()
+plt.plot(x, perf_rb, "o-", label = "Base réduite")
+plt.plot(x, perf_hf, "s-", label = "HF")
+plt.xlabel("N")
+plt.ylabel("Temps (s)")
+plt.title("Temps de construction de la base réduite contre résolution HF")
+plt.legend()
+plt.grid(True)
+plt.show()
 
 exit(-1)
 
