@@ -1,3 +1,5 @@
+# import packages
+
 import skfem  # for Finite Element Method
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,7 +21,7 @@ from skfem.assembly import BilinearForm, LinearForm
 # -----------------------
 # Problem setup
 # -----------------------
-Ne = 14 # number of mesh points 
+Ne = 100 # number of mesh points 
 
 m = MeshLine(np.linspace(0.0, 0.5, Ne + 1))
 basis = Basis(m, ElementLineP1())
@@ -29,19 +31,19 @@ D = basis.get_dofs().all()  # all dofs
 
 # Parameter-dependent diffusion coefficient
 def A_mu(mu):
-    return 0.1 + mu
+    return ...
 
 # Sinusoidal source term : compute int f*v
 @LinearForm
 def rhs(v, w):
     x = w.x[0]
-    f = np.sin(2*np.pi*x) # sinusoidal source
-    return f*v
+    f = ...  # sinusoidal source
+    return ...
 
 
 @BilinearForm
 def diffusion(u, v, w):
-    return dot(grad(u), grad(v))
+    return ...
 
 
 def FEMassembling(m):
@@ -49,7 +51,6 @@ def FEMassembling(m):
     m= mesh
     return A,b (no parameter dependance)
     """
-
     basis = Basis(m, ElementLineP1())
     
     A = asm(diffusion, basis) #assembling stiffness
@@ -61,40 +62,31 @@ def FEMsolve(A,b,m,mu):
     # solve Au=b
     # Apply homogeneous Dirichlet at x=0,0.5
     
-    A, b = enforce(A_mu(mu)*A,b, D=m.boundary_nodes()) #enforce boundary conditions on A and b
-    u = solve(A, b)
+    ... = enforce(...,..., D=m.boundary_nodes()) #enforce boundary conditions on A and b
+    u = ...
     return u
 
 
 # -----------------------------------
 # Solve for two mus + an intermediate
 # -----------------------------------
-mu1 = 0.5
-mu2 = 1.5
-theta = 0.2     # intermediate parameter weight        #Q: PK cette valeur ?
-mu_mid = 1.     #Q: est-ce qu'on pourrait placer 1.2 ou autre valeur dans ]0.5, 1.5[
+mu1 = ...
+mu2 = ...
+theta = ...  # intermediate parameter weight 
+mu_mid = ...
 
-A,b = FEMassembling(m)  #Q: pourquoi reassembler la matrice à chaque fois ??
-u1 = FEMsolve(A, b, m, mu1)
-
-A,b = FEMassembling(m)
-u2 = FEMsolve(A,b,m,mu2)
-
-A,b = FEMassembling(m)
-umid = FEMsolve(A,b,m,mu_mid)
-
-def sol1(x, mu) : 
-    return np.sin(2*np.pi*x)/((mu+0.1)*(2*np.pi)**2)
-
+A,b=...
+u1 = ...
+u2 = ...
+umid = ...
 
 #linear combination in solution space:
-theta2 = 5                      #Q: toutes valeurs authorisé ??
-u_lin = theta*u1 + theta2*u2    #Q: theta est associée à u2 ??
+theta2 = ...
+u_lin = ...
 
 x_fine = basis.doflocs[0] 
 plt.figure(figsize=(8, 4.5))
-#plt.plot(x_fine, u1, lw=2, label=fr"$u(\mu_1)$, $\mu_1={mu1}$, $A={A_mu(mu1):.3g}$")
-plt.plot(x_fine, sol1(x_fine, mu1), label = 'Solution exacte')
+plt.plot(x_fine, u1, lw=2, label=fr"$u(\mu_1)$, $\mu_1={mu1}$, $A={A_mu(mu1):.3g}$")
 plt.plot(x_fine, u2, lw=2, label=fr"$u(\mu_2)$, $\mu_2={mu2}$, $A={A_mu(mu2):.3g}$")
 plt.plot(x_fine, umid, lw=2, label=fr"$u(\mu_{{mid}})$, $\mu_{{mid}}={mu_mid}$, $A={A_mu(mu_mid):.3g}$")
 plt.plot(x_fine, u_lin, "--", lw=2, label=fr"linear blend $\alpha_1 u(\mu_1)+\alpha_2\ u(\mu_2)$")
@@ -111,77 +103,54 @@ plt.show()
 """ POD """
 ### USE AND ADAPT TP1 FUNCTION...
 
-def Construct_RB(NumberOfSnapshots=50,NumberOfModes=30,m=m, seed = np.random.seed(42)):
+def Construct_RB(NumberOfSnapshots=100,NumberOfModes=20,m=m):
     """
     NumberOfSnapshots= Training set
     NumberOfModes= N 
     m=mesh
     """
-    #print("number of modes: ",NumberOfModes)
-    basis = Basis(m, ElementLineP1())
-    A,b = FEMassembling(m)
+    print("number of modes: ",NumberOfModes)
+    basis =...
+    A,b = ...
     
-    Snapshots=np.zeros((m.nvertices, NumberOfSnapshots))
+    Snapshots=[]
     for i in range(NumberOfSnapshots):
-        mu = 10*(np.random.rand() + 1) #random coefficient in [1,10] 
-        U = FEMsolve(A,b,m,mu)
-
-        Snapshots[:,i] = U
+        mu = ... #random coefficient in [1,10] 
+        U = ...
         
-    # print("last parameter:",mu)
+        Snapshots.append(U)
+        
+    print("last parameter:",mu)
 
     ## SVD ##
 
     #(u,v)_L2=v^T M u
     @BilinearForm
     def massVelocity(u, v, _):
-        return u*v
+        return u * v
     
     L2=massVelocity.assemble(basis)
 
     # We first compute the correlation matrix C_ij = (u_i,u_j)
-    C = Snapshots.T@L2@Snapshots        #Q: a quel point est on sûr de la formule ?
-
-    if(C.shape != (NumberOfSnapshots, NumberOfSnapshots)) :
-        print("La matrice de corrélation n'est pas de la bonne taaaaaaaille. Recommences.\n")
-        exit(-1)
-
-    # Then, we compute the eigenvalues/eigenvectors of C (EigenVectors=alpha)
-    EigenValues, EigenVectors = np.linalg.eigh(C, UPLO="L") #SVD: C eigenVectors=eigenValues eigenVectors
-    ## Vecteur propre stocké en colonne
-
-    idx = EigenValues.argsort()[::-1] # sort the eigenvalues
-    print(idx,"idx \n")
-    TotEigenValues = EigenValues[idx] # Valeurs propres réordonnées
-    TotEigenVectors = EigenVectors[:, idx] # Réordonnement selon les valeurs propres
-
+    CorrelationMatrix = np.zeros((NumberOfSnapshots, NumberOfSnapshots))
+    ...
+    
+    # Then, we compute the eigenvalues/eigenvectors of C 
+    # sort the eigenvalues
     # retrieve N=NumberOfModes first eigenvalues
-    EigenValues = np.array([TotEigenValues[i] for i in range(NumberOfModes)]) # On prend les NumberOfModes première valeurs
-    EigenVectors = np.array([TotEigenVectors[:,i] for i in range(NumberOfModes)]) # Les vecteurs propres associés
-
-    print("eigenvalues: ",EigenValues)
-
-    RIC = 1 - sum(EigenValues[i] for i in range(NumberOfModes))/sum(lbd for lbd in TotEigenValues) #must be close to 0
+    
     print("Relativ Information Content (must be close to 0): ",RIC)
-
-    ChangeOfBasisMatrix = np.zeros((NumberOfSnapshots, NumberOfModes))
-
-    for j in range(NumberOfModes):
-        ChangeOfBasisMatrix[:,j] = EigenVectors[j,:]/np.sqrt(EigenValues[j]) #/ normalization
     
-    ReducedBasis = Snapshots@ChangeOfBasisMatrix 
+    ReducedBasis = ...
 
-    #Id = ReducedBasis.T @ L2 @ ReducedBasis
-    #print(np.allclose(Id, np.eye(NumberOfModes)))
-    
     return ReducedBasis
 
 ## test POD
 
-Ne = 14
+Ne = 100
 m = MeshLine(np.linspace(0.0, 0.5, Ne + 1))
-basis = Basis(m, ElementLineP1())
-ReducedBasis= Construct_RB(NumberOfModes=2, m=m, seed = np.random.seed(42))
+basis = ...
+ReducedBasis=...     
 x_fine = basis.doflocs[0] 
 
 plt.figure(figsize=(8, 4.5))
@@ -197,26 +166,25 @@ plt.legend()
 plt.tight_layout()
 plt.show()
 
-def solve_fem_rom(A,b,mu, Phi,m):
-    Q_mu = A_mu(mu)*Phi.T@A@Phi
-    b_mu = Phi.T@b
+# POD-Galerkin
 
-    #u_rom = np.linalg.lstsq(Q_mu, b_mu)    #Q: ça marche pas avec leastsquare ?
-    u_rom = np.linalg.inv(Q_mu)@b_mu
-    return u_rom #( or return only u_rom)   #Q: il y a un 'a' dans le base 
+A, b = FEMassembling(m)
+def solve_fem_rom(A,b,mu, Phi,m):
+    # assemble full system
+   
+    ...
+    return a, u_rom #( or return only u_rom)
 
 mu = mu_mid
-Ne = 14
+Ne = 100
 m = MeshLine(np.linspace(0.0, 0.5, Ne + 1))
 basis = Basis(m, ElementLineP1())
 A,b=FEMassembling(m)
-Phi = Construct_RB(NumberOfSnapshots=5, NumberOfModes=3,m=m)    #Q: est-ce qu'il ne faudrait pas mettre ça dans la fonction ?
-u_rom=solve_fem_rom(A,b,mu_mid, Phi,m)
-u_proj = Phi @ u_rom
-x_fine = basis.doflocs[0]
+a,u_proj=solve_fem_rom(A,b,mu, Phi,m)
+x_fine = basis.doflocs[0] 
 
 plt.plot(x_fine,u_proj, lw=2, label="$urom_{mid}$")
-#plt.plot(x_fine, umid, lw=2, label=fr"$u(\mu_{{mid}})$, $\mu_{{mid}}={mu_mid}$, $A={A_mu(mu_mid):.3g}$")   #Q: ça marche pas ??
+plt.plot(x_fine, umid, lw=2, label=fr"$u(\mu_{{mid}})$, $\mu_{{mid}}={mu_mid}$, $A={A_mu(mu_mid):.3g}$")
 plt.plot(x_fine, u_lin, "--", lw=2, label=fr"linear blend $\alpha_1\ u(\mu_1)+\alpha_2\ u(\mu_2)$")
 
 
@@ -232,29 +200,29 @@ plt.show()
 
 mu = 0.6
 @BilinearForm
+
 def massVelocity(u, v, _):
     return u*v
 
 err_true=[]
 err_rom=[]
 # choose grid sizes to test
-Ns = [5,10,30,60,90,300,900] # adapt as you want
+Ns = [...] # adapt as you want
 for n in Ns:
     print("n",n)
-    m = MeshLine(np.linspace(0.0, 0.5, n + 1))
-    basis = basis = Basis(m, ElementLineP1())
+    m = ...
+    basis = ...
     L2=massVelocity.assemble(basis)
     xc = basis.doflocs[0] 
     
-    A, b = FEMassembling(m)
-    U = FEMsolve(A,b,m,mu)
-    Phi = Construct_RB(NumberOfSnapshots=5, NumberOfModes=3,m=m)
+    A, b = ...
+    U = ...
+    Phi=...
 
-    U_rom = solve_fem_rom(A,b,mu,Phi,m)
-    Uproj = Phi@U_rom
+    _,Uproj=...
 
     points_new = xc
-    u_exact= sol1(points_new,mu) #compute true solution
+    u_exact=... #compute true solution
    
     ## print error
     true_error = np.abs(u_exact - U)
@@ -262,14 +230,11 @@ for n in Ns:
     print(l2_true_error)
     rom_error = np.abs(u_exact - Uproj)
     l2_rom_error=np.sqrt(rom_error@L2.dot(rom_error))
-    print(l2_rom_error)
 
 
    # L2 errors (cellwise)
     err_true.append(l2_true_error)
     err_rom.append(l2_rom_error)
-
-#Q: tu sais pk il y a des nan ?
 
 # ---------------------------
 # Plot log-log convergence
@@ -277,12 +242,10 @@ for n in Ns:
 hs = np.array(Ns)
 err_true = np.array(err_true)
 err_rom = np.array(err_rom)
-coefs = np.polyfit(np.log(hs), np.log(err_rom),1) #Q: c'est quoi ?
-print(coefs[0])
 
 plt.figure()
 plt.loglog(hs, err_true, "o-", label=r"$\|u_{ref}-u\|_{L^2}$")
-plt.loglog(hs, 1/(hs**2), "-", label=r"$h^2$")
+plt.loglog(hs, 1/(hs**...), "-", label=r"$h^2$")
 plt.loglog(hs, err_rom, "s-", label=r"$\|u_{ref}-u_N\|_{L^2}$")
 plt.gca().invert_xaxis()  # optional: smaller h to the right
 plt.xlabel(r"$h$")
