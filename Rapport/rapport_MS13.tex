@@ -218,7 +218,183 @@ Et dans notre cas :
 \]
 
 Une fois que la matrice des volumes finis et que le second membre sont assemblés, il n'y a plus qu'à résoudre le système.
+On remarque que la méthode des volumes finis repose grandement sur la conservation du flux à l'interface
+entre 2 éléments.
+
+\vspace{0.3cm}
+
+Très adapté au problèmes hyperboliques, la méthode des volumes finis constitue une méthode de résolution haute fidélité
+au même titre que la méthode des éléments finis. Ceci étant dis, comme expliqué plus haut, on ne peut pas
+se permettre d'utiliser cette méthode à chaque fois que le paramètre $\mu$ change. 
+
+\vspace{0.3cm}
+
+L'idéal serait de disposer d'une formule exacte permettant de passer de la solution HF pour un $\mu_0 \in \mathbb{R}^n $ à
+n'importe quel $\mu$ : 
+\[
+ u(x, \mu) = f(u(x,\mu_0), \mu)
+\]
+
+Disposer de la formule exacte de $f$ serai inespéré, mais supposer que cette relation existe est possible ne l'est pas. 
+D'un point de vue d'un statisticien, on peut voir cette relation comme une famille d'expériences aléatoires dépendante
+d'un paramètre et dont on voudrait estimer la loi. On va se baser sur les observations passées pour identifier une approximation de $f$
+puis inférer sur des nouveaux paramètres. C'est le point de départ de la \textit{POD}, connue chez les statisticiens sous le nom de 
+\textit{Analyse en Composante Principale}.
+
 \subsection{POD et interprétation}
+
+\vspace{0.2cm}
+
+Le plan est le suivant : tout d'abord, calculer pour plusieurs jeu de paramètre $\mu$ la solution HF avec la méthode des volumes finis (que l'on appelle \textit{Snapshot en $\mu$}). 
+
+\vspace{0.2cm}
+
+Ensuite, on calcule
+la covariance entre chacun des snapshot. Cette matrice de covariance va être, par construction, une matrice symétrique, donc diagonalisable dans $\mathbb{R}$ dans une base unitaire et à valeurs propres réelles et positive.
+
+\vspace{0.2cm}
+
+On choisit les sous-espaces propres associés au plus grande valeurs propres et on récupère cette nouvelle famille libre et génératrice (ce n'est pas une base !) dans laquelle 
+on effectuera tout nos calculs. 
+
+\vspace{0.3cm}
+
+Ce que l'on vient de décrire est la \textit{Décomposition en Valeur Singulière} de la matrice des snapshots. L'idée de réduction 
+apparaît lorsque l'on choisit, parmis les valeurs propres de la matrice de corrélation, celle étant les plus importantes pour décrire la relation entre deux snapshots.
+
+\vspace{0.3cm}
+
+Dans les cas où cette méthode est viable, 2 gains sont réalisés à sa mise en place. Primo : lorsque que le maillage est fin, 
+il est beaucoup plus rapide d'effectuer ces calculs plutôt que de recalculer une solution HF. Secondo : on peut calculer \textit{offline} la famille orthonormale réduite
+pour n'avoir qu'à inverser un système pour approcher la solution de \eqref{fil_conduc} (calcul \textit{online}). L'étude de performance
+de cette méthode sera fait dans la section suivante.  
+
+\vspace{0.3cm}
+
+Pour s'assurer que cette idée tient la route, mettons un pied dans les détails. Un vecteur $\phi$ de la base réduite 
+minimise l'erreur quadratique entre lui même et tous les snapshots (ou maximise la variance entre lui et chacun des snapshots), ce qui se formule comme suit :
+\begin{align*}
+    \begin{cases}
+        &\text{Trouver}\; \phi \; \text{tel que} \\
+        &||\phi|| = 1 \; \text{et} \; \phi \; \text{minimise} \; \mathbb{E}_\mu \left[||u - \left(u, \phi\right)_{L^2} \phi ||^2 \right]
+    \end{cases}
+\end{align*}
+
+Et on utilisera plutôt la formulation "duale"
+
+\begin{equation}
+    \label{opt_pb}
+    \begin{cases}
+    &\text{Trouver}\; \phi \; \text{tel que} \\
+    &||\phi|| = 1 \; \text{et} \; \phi \; \text{maximise} \; \mathbb{E}_\mu \left[|\left(u, \phi\right)_{L^2}|^2 \right]
+    \end{cases}
+\end{equation}
+
+On introduit la forme quadratrique 
+\begin{align*}
+    Q :\; &L^2(\Omega) \longrightarrow \mathbb{R}_+ \\
+        &(\phi, \psi) \; \mapsto \mathbb{E}_\mu \left[|\left(u, \phi\right)_{L^2}||\left(u, \psi\right)_{L^2}| \right]
+\end{align*}
+
+Cette forme quadratique est fermée (bornée inférieurement par 0, symétrique et l'espace $(L^2, \langle \cdot , \cdot \rangle_Q)$ est un espace de Hilbert),  
+Par conséquent, l'opérateur $C$ associé à $Q$ est auto-adjoint sur $L^2$ et est bornée inférieurement. Identifions l'opérateur $C$ :
+
+\begin{align*}
+    Q(\phi , \psi) &= \mathbb{E}_\mu \left[|\left(u, \phi\right)_{L^2}||\left(u, \psi\right)_{L^2}| \right] \\
+                   &= \int\int(u(\mu), \phi)u(\mu) \psi \; dx \, d\mu \\
+                   &= \int \int(u(\mu), \phi)u(\mu) \, d\mu \; dx \\
+                   &= \int \mathbb{E}_\mu \left[(u(\mu),\phi)u\right] \psi \, dx \\
+                   &= \left(C\phi, \psi\right)
+\end{align*}
+
+où on a utilisé le théorème de Fubini. Ainsi, l'opérateur $C$ associé à $Q$ est définit par $C\phi = \mathbb{E}_\mu \left[(u(\mu),\phi)u\right]$. L'opérateur $C$ est compact : pour $(\phi_n)_{n\in\mathbb{N}}$ une famille orthonormale de 
+$L^2$, 2 applications successives du théorème de convergence dominée puis la faible convergence vers 0 de la famille montre que 
+\[
+||C\phi_n||_{L^2} \underset{n \to \infty}{\longrightarrow} 0
+\]
+
+Mieux encore : $C$ est un opérateur à noyau intégral :
+\[
+C\phi(x) = \int K(x,y)\phi(y) \,dy
+\]
+Avec $K(x,y) = {E}_{\mu}\left[u(\mu, x)u(\mu, y)\right] \in L^2(\Omega \times \Omega)$. C'est donc un opérateur de Hilbert-Schmidt. De là, on peut tirer 2 conclusions :
+\begin{itemize}
+    \item[(I)] Par le théorème spectral pour les opérateurs compacts, il existe une base hilbertienne associée
+                           à une suite $(\lambda_n)_{n\in\mathbb{N}}$ positive qui tend vers 0 dans laquelle $C$ est diagonal
+    \item[(II)] Il existe une suite d'opérateur de rang fini qui converge dans l'espace dual vers $C$.
+\end{itemize}
+
+La première justfie l'existence de solution des problèmes spectraux associées à $C$, ce qui permet d'établir l'existence de solution à \eqref{opt_pb}.
+La deuxième justifie le choix d'une suite d'opérateur de rang finis pour approximer numériquement l'opérateur $C$. Le fait qu'il soit de Hilbert-Schmidt
+nous aiguille sur le choix de la suite d'opérateur. Maintenant que le problème en dimension infinie est bien posé, tâchons de le traduire en dimension finie. 
+\newpage
+
+Le noyau peut s'approcher par la moyenne empirique sur l'ensemble des snapshots déjà calculé : 
+\[
+K(x,y) \approx \frac{1}{N_T}\sum_{k = 1}^{N_T}u(x,\mu_k)u(y,\mu_k)
+\]
+
+Donc 
+
+\[
+C\phi \approx \frac{1}{N_T}\sum_{k = 1}^{N_T}u(x,\mu_k) \int_{\Omega}u(y,\mu_k)\phi(y)\, dy =  \frac{1}{N_T}\sum_{k = 1}^{N_T}u(x,\mu_k) (u(\mu),\phi)_{L^2(\Omega)}
+\]
+
+Et donc pour $(\lambda, \phi)$ une paire valeur/vecteur propre de $C$, on obtient
+\[
+\lambda \phi \approx  \frac{1}{N_T}\sum_{k = 1}^{N_T}u(x,\mu_k) (u(\mu),\phi)_{L^2(\Omega)}
+\]
+
+En décomposant $\phi$ sur la base des snapshots : $\phi(x) = \sum_{l = 1}^{N_T}\alpha_l u(x,\mu_l)$, le membre de droite devient
+\[
+\frac{1}{N_T}\sum_{k = 1}^{N_T}u(x,\mu_k) (u(\mu_k),\phi)_{L^2(\Omega)} = \frac{1}{N_T}\sum_{k = 1}^{N_T}u(x,\mu_k)\sum_{l = 1}^{N_T}\alpha_l(u(\mu_k), u(\mu_l))_{L^2(\Omega)}
+\]
+
+On y est presque, le dernier ingrédient à ajouter consiste à approcher le produit scalaire de $L^2(\Omega)$ par le produit scalaire euclidien
+normalisé par le volume du domaine $\Omega$ (ce qui signifie discrétiser le domaine) : 
+\[
+    (u(\mu_k), u(\mu_l))_{L^2(\Omega)} \approx |\Omega|\sum_{i = 1}^{n}u(x_i, \mu_k)u(x_i, \mu_l) = |\Omega|\text{Cov}\left[(u(\mu_k)_i)_{i\leq n}, (u(\mu_l)_i)_{i\leq n}\right]
+\]
+
+En posant $\mathbb{C} = \left(\text{Cov}\left[(u(\mu_k)_i)_{i\leq n}, (u(\mu_l)_i)_{i\leq n}\right]\right)_{1 \leq k,l\leq N_T}$ et $\Phi = (\alpha_i)_{i\leq N_T}$, on reformule le problème
+spectral sur $L^2(\Omega)$ en un problème spectral sur $\mathbb{R}^{N_T}$ :
+
+\begin{equation}
+    \mathbb{C}\Phi = \lambda\Phi
+\end{equation} 
+Et par construction, $\mathbb{C}$ est bien symétrique, comme annoncé. La matrice $\mathbb{C}$ est appelé \textit{Matrice de corrélation}, terminologie issue 
+de l'approche probabiliste du problème. 
+
+\vspace{0.3cm}
+
+Une fois que cette matrice est construite, on la diagonalise. On récupère les valeurs propres les plus importantes 
+(par plus importante, comprendre les plus grandes), étant la discrétisée d'un opérateur compact, on est sûr que ces valeurs propres forment
+une suite tendant vers 0 à mesure que le nombre de snapshots augmente. De là, on normalise les vecteurs propres par $\sqrt{\lambda}$ et on obtient à la fin la 
+fameuse base réduite tant convoitée. 
+
+\vspace{0.3cm}
+
+Remarquons que la construction de $\mathbb{C}$ repose sur la quantité de snapshots précalculé. Ce qui signifie que la base réduite
+peut être calculée en amont, puis réutilisé pour résoudre \eqref{fil_conduc} pour un nouveau jeu de paramètre $\mu$. 
+La résolution haute fidélité mène à la résolution d'un système
+\[
+\mathbb{A}(\mu)U = F
+\]
+avec $\mathbb{A}(\mu) \in \mathcal{M}_{n\times n}(\mathbb{R})$, $U, F \in \mathbb{R}^n$ et $n$ le nombre de noeud sur le 
+maillage. Pour résoudre le problème pour un nouveau $\mu$, on se place simplement dans la base réduite $P$ :
+\[
+PP^T\mathbb{A}(\mu)PP^TU = F(\mu)
+\]   
+
+et alors pour $\Phi = P^TU$, on peut réécrire le système comme suit : 
+
+\[
+P^T\mathbb{A}(\mu)P\Phi = P^TF(\mu)
+\] 
+
+et la fonction $f$ introduit en amont décrivant la relation entre les snapshots (dont on rêve d'avoir une formule explicite) 
+est approchée par la matrice $P^T\mathbb{A}(\mu)P$.  
+
 \subsection{Résultats numériques et erreur}
 L'idée 
 
