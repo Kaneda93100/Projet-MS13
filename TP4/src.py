@@ -74,9 +74,16 @@ if(PLOT):
     fig, ax = plt.subplots()
 
     im=m.plot(ReducedBasis[0,:], ax=ax, shading='gouraud',colorbar=True)
+    ax.set_title(f"fonction de base 1")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+
     fig, ax = plt.subplots()
 
     m.plot(ReducedBasis[1,:], ax=ax, shading='gouraud',colorbar=True)
+    ax.set_title(f"fonction de base 2")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
 
 
     plt.show()
@@ -111,6 +118,9 @@ if(PLOT):
     fig, ax = plt.subplots()
 
     m.plot(u_proj, ax=ax, shading='gouraud',colorbar=True)
+    ax.set_title(f"Solution FEM projetée, mu = {mu}")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
 
 ## Compare with u 
 u = t.FEMsolve(A1,A2,b,basis,mu)
@@ -118,6 +128,9 @@ if(PLOT):
     fig, ax = plt.subplots()
 
     m.plot(u, ax=ax, shading='gouraud',colorbar=True)
+    ax.set_title(f"Solution FEM 2D, mu = {mu}")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
 
     plt.show()
 
@@ -195,6 +208,7 @@ if(PLOT):
     plt.gca().invert_xaxis()  # optional: smaller h to the right
     plt.xlabel(r"$h$")
     plt.ylabel(r"$L^2$ error")
+    plt.title(r"convergence des erreurs")
     plt.grid(True, which="both")
     plt.legend()
     plt.show()
@@ -246,7 +260,7 @@ interior = (
 # -------------------------------------------------
 # Boucle de convergence
 # -------------------------------------------------
-Ns = [20, 40, 60, 80]
+Ns = [10, 20, 40, 60, 80]
 
 for n in Ns:
     print("n =", n)
@@ -255,7 +269,7 @@ for n in Ns:
     m = MeshTri.init_tensor(
     np.linspace(0.0, 1.0, n + 1),
     np.linspace(0.0, 1.0, n + 1)
-)
+    )
 
     # reduced basis
     Phi = t.Construct_RB(m)
@@ -265,7 +279,7 @@ for n in Ns:
     U_h = t.FEMsolve(A1, A2, F, basis, mu)
     
     # ROM + certification
-    U_rb, coeff, dual_norm, Delta_N = RB_solve_certified(Phi, A1, A2, F, basis, mu)
+    U_rb, coeff, dual_norm, Delta_N = t.RB_solve_certified(Phi, A1, A2, F, basis, mu)
 
     #Interpolated FEM on refined mesh
     Xdof = basis.doflocs
@@ -293,7 +307,7 @@ for n in Ns:
     # -------------------------
     # True error in X norm
     # -------------------------
-    err_X = true_error_X_norm(U_h, U_rb, A1, A2, basis)
+    err_X = t.true_error_X_norm(U_h, U_rb, A1, A2, basis)
 
     
     err_true_X.append(err_X)

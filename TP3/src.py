@@ -18,11 +18,11 @@ from skfem.assembly import BilinearForm, LinearForm
 
 import tools as t
 
-PLOT = False
+PLOT = True
 # -----------------------
 # Problem setup
 # -----------------------
-Ne = 14 # number of mesh points 
+Ne = 100 # number of mesh points 
 
 m = MeshLine(np.linspace(0.0, 0.5, Ne + 1))
 basis = Basis(m, ElementLineP1())
@@ -77,7 +77,7 @@ if(PLOT):
 
 ## test POD
 
-Ne = 14
+Ne = 100
 m = MeshLine(np.linspace(0.0, 0.5, Ne + 1))
 basis = Basis(m, ElementLineP1())
 ReducedBasis= t.Construct_RB(m=m,NumberOfModes=2, seed = np.random.seed(42))
@@ -106,7 +106,7 @@ def solve_fem_rom(A,b,mu, Phi,m):
     return u_rom #( or return only u_rom)   
 
 mu = mu_mid
-Ne = 14
+Ne = 100
 m = MeshLine(np.linspace(0.0, 0.5, Ne + 1))
 basis = Basis(m, ElementLineP1())
 A,b=t.FEMassembling(m)
@@ -117,7 +117,7 @@ x_fine = basis.doflocs[0]
 
 if(PLOT):
     plt.plot(x_fine,u_proj, lw=2, label="$urom_{mid}$")
-    #plt.plot(x_fine, umid, lw=2, label=fr"$u(\mu_{{mid}})$, $\mu_{{mid}}={mu_mid}$, $A={A_mu(mu_mid):.3g}$")   
+    plt.plot(x_fine, umid, lw=2, label=fr"$u(\mu_{{mid}})$, $\mu_{{mid}}={mu_mid}$, $A={t.A_mu(mu_mid):.3g}$")   
     plt.plot(x_fine, u_lin, "--", lw=2, label=fr"linear blend $\alpha_1\ u(\mu_1)+\alpha_2\ u(\mu_2)$")
 
 
@@ -139,7 +139,7 @@ def massVelocity(u, v, _):
 err_true=[]
 err_rom=[]
 # choose grid sizes to test
-Ns = [5,10,30,60,90,300,900] # adapt as you want
+Ns = [5,10,25,50,100,250,500] # adapt as you want
 for n in Ns:
     print("n",n)
     m = MeshLine(np.linspace(0.0, 0.5, n + 1))
