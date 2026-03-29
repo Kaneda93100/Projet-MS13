@@ -9,14 +9,13 @@ from scipy.interpolate import interp1d
 import random
 import tools as t
 
-import numpy as np
-import matplotlib.pyplot as plt
-
 from skfem import MeshTri, Basis, asm, enforce,solve
 from skfem.element import ElementTriP1
 from skfem.helpers import dot, grad
 from skfem.assembly import BilinearForm, LinearForm
 from skfem import solve
+
+PLOT = False
 
 # -----------------------
 # Problem setup
@@ -46,12 +45,13 @@ u = t.FEMsolve(A1, A2, b, basis, mu)
 # -----------------------
 # Plot
 # -----------------------
-fig, ax = plt.subplots(figsize=(6, 5))
-m.plot(u, ax=ax, shading='gouraud')
-ax.set_title(f"Solution FEM 2D, mu = {mu}")
-ax.set_xlabel("x")
-ax.set_ylabel("y")
-plt.show()
+if(PLOT):
+    fig, ax = plt.subplots(figsize=(6, 5))
+    m.plot(u, ax=ax, shading='gouraud')
+    ax.set_title(f"Solution FEM 2D, mu = {mu}")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    plt.show()
 
 
 
@@ -70,16 +70,23 @@ m = MeshTri.init_tensor(
 basis = Basis(m, ElementTriP1())
 Phi= t.Construct_RB(m = m, NumberOfSnapshots=100,NumberOfModes=6)
 ReducedBasis=Phi.T   
+if(PLOT):
+    fig, ax = plt.subplots()
 
-fig, ax = plt.subplots()
+    im=m.plot(ReducedBasis[0,:], ax=ax, shading='gouraud',colorbar=True)
+    ax.set_title(f"fonction de base 1")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
 
-im=m.plot(ReducedBasis[0,:], ax=ax, shading='gouraud',colorbar=True)
-fig, ax = plt.subplots()
+    fig, ax = plt.subplots()
 
-m.plot(ReducedBasis[1,:], ax=ax, shading='gouraud',colorbar=True)
+    m.plot(ReducedBasis[1,:], ax=ax, shading='gouraud',colorbar=True)
+    ax.set_title(f"fonction de base 2")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
 
 
-plt.show()
+    plt.show()
 
 # POD-Galerkin
 
@@ -107,19 +114,25 @@ basis = Basis(m, ElementTriP1())
 A1,A2,b,basis = t.FEMassembling(m)
 Phi = t.Construct_RB(m)
 a,u_proj= solve_fem_rom(A1,A2,b,mu,Phi)
+if(PLOT):
+    fig, ax = plt.subplots()
 
-fig, ax = plt.subplots()
-
-m.plot(u_proj, ax=ax, shading='gouraud',colorbar=True)
+    m.plot(u_proj, ax=ax, shading='gouraud',colorbar=True)
+    ax.set_title(f"Solution FEM projetée, mu = {mu}")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
 
 ## Compare with u 
 u = t.FEMsolve(A1,A2,b,basis,mu)
+if(PLOT):
+    fig, ax = plt.subplots()
 
-fig, ax = plt.subplots()
+    m.plot(u, ax=ax, shading='gouraud',colorbar=True)
+    ax.set_title(f"Solution FEM 2D, mu = {mu}")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
 
-m.plot(u, ax=ax, shading='gouraud',colorbar=True)
-
-plt.show()
+    plt.show()
 
 
 #### Convergence
@@ -187,7 +200,20 @@ for n in Ns:
 hs = np.array(Ns)
 err_true = np.array(err_true)
 err_rom = np.array(err_rom)
+if(PLOT):
+    plt.figure()
+    plt.loglog(hs, err_true, "o-", label=r"$\|u_{ref}-u\|_{L^2}$")
+    plt.loglog(hs, 1/(hs**2), "-", label=r"$h^2$")
+    plt.loglog(hs, err_rom, "s-", label=r"$\|u_{ref}-u_N\|_{L^2}$")
+    plt.gca().invert_xaxis()  # optional: smaller h to the right
+    plt.xlabel(r"$h$")
+    plt.ylabel(r"$L^2$ error")
+    plt.title(r"convergence des erreurs")
+    plt.grid(True, which="both")
+    plt.legend()
+    plt.show()
 
+<<<<<<< HEAD
 plt.figure()
 plt.loglog(hs, err_true, "o-", label=r"$\|u_{ref}-u\|_{L^2}$")
 plt.loglog(hs, 1/(hs**2), "-", label=r"$h^2$")
@@ -276,6 +302,8 @@ def true_error_X_norm(U_fem, U_rb, A1, A2, basis):
     e_I = U_fem[I] - U_rb[I]
     err_X = e_I.T@X_I@e_I
     return np.sqrt(err_X)
+=======
+>>>>>>> e7f740fe14220c77426a9e514463481372c9dbd6
 
 
 mu = 0.6
@@ -323,7 +351,7 @@ interior = (
 # -------------------------------------------------
 # Boucle de convergence
 # -------------------------------------------------
-Ns = [20, 40, 60, 80]
+Ns = [10, 20, 40, 60, 80]
 
 for n in Ns:
     print("n =", n)
@@ -332,7 +360,7 @@ for n in Ns:
     m = MeshTri.init_tensor(
     np.linspace(0.0, 1.0, n + 1),
     np.linspace(0.0, 1.0, n + 1)
-)
+    )
 
     # reduced basis
     Phi = t.Construct_RB(m)
@@ -342,7 +370,7 @@ for n in Ns:
     U_h = t.FEMsolve(A1, A2, F, basis, mu)
     
     # ROM + certification
-    U_rb, coeff, dual_norm, Delta_N = RB_solve_certified(Phi, A1, A2, F, basis, mu)
+    U_rb, coeff, dual_norm, Delta_N = t.RB_solve_certified(Phi, A1, A2, F, basis, mu)
 
     #Interpolated FEM on refined mesh
     Xdof = basis.doflocs
@@ -370,7 +398,7 @@ for n in Ns:
     # -------------------------
     # True error in X norm
     # -------------------------
-    err_X = true_error_X_norm(U_h, U_rb, A1, A2, basis)
+    err_X = t.true_error_X_norm(U_h, U_rb, A1, A2, basis)
 
     
     err_true_X.append(err_X)
@@ -392,43 +420,43 @@ hs = np.array(hs)
 
 err_true_L2 = np.array(err_true_L2)
 err_rom_L2 = np.array(err_rom_L2)
+if(PLOT):
+    plt.figure(figsize=(7, 5))
+    plt.loglog(hs, err_true_L2, "o-", label=r"$\|u_{ref}-u_h\|_{L^2}$")
+    plt.loglog(hs, 1/(hs**2), "--", label=r"$h^2$")
+    plt.loglog(hs, err_rom_L2, "s-", label=r"$\|u_{ref}-u_N\|_{L^2}$")
 
-plt.figure(figsize=(7, 5))
-plt.loglog(hs, err_true_L2, "o-", label=r"$\|u_{ref}-u_h\|_{L^2}$")
-plt.loglog(hs, 1/(hs**2), "--", label=r"$h^2$")
-plt.loglog(hs, err_rom_L2, "s-", label=r"$\|u_{ref}-u_N\|_{L^2}$")
-
-plt.gca().invert_xaxis()
-plt.xlabel(r"$h$")
-plt.ylabel(r"Error $L^2$")
-plt.grid(True, which="both")
-plt.legend()
-plt.title(" FEM / ROM in $L^2$ norm")
-plt.show()
+    plt.gca().invert_xaxis()
+    plt.xlabel(r"$h$")
+    plt.ylabel(r"Error $L^2$")
+    plt.grid(True, which="both")
+    plt.legend()
+    plt.title(" FEM / ROM in $L^2$ norm")
+    plt.show()
 
 
 
 err_true_X = np.array(err_true_X)
 estimator = np.array(estimator)
 effectivity = np.array(effectivity)
+if(PLOT):
+    plt.figure(figsize=(7, 5))
+    plt.loglog(hs, err_true_X, "o-", label=r"True error $\|u_h-u_N\|_X$")
+    plt.loglog(hs, estimator, "s--", label=r"Estimator $\Delta_N(\mu)$")
 
-plt.figure(figsize=(7, 5))
-plt.loglog(hs, err_true_X, "o-", label=r"True error $\|u_h-u_N\|_X$")
-plt.loglog(hs, estimator, "s--", label=r"Estimator $\Delta_N(\mu)$")
+    plt.gca().invert_xaxis()
+    plt.xlabel(r"$h$")
+    plt.ylabel(r"estimator")
+    plt.grid(True, which="both")
+    plt.legend()
+    plt.title("Certification a posteriori ")
+    plt.show()
 
-plt.gca().invert_xaxis()
-plt.xlabel(r"$h$")
-plt.ylabel(r"estimator")
-plt.grid(True, which="both")
-plt.legend()
-plt.title("Certification a posteriori ")
-plt.show()
-
-plt.figure(figsize=(7, 4))
-plt.semilogx(hs, effectivity, "o-")
-plt.gca().invert_xaxis()
-plt.xlabel(r"$h$")
-plt.ylabel("Effectivity")
-plt.grid(True, which="both")
-plt.title(r"Effectivity $\Delta_N / \|u_h-u_N\|_X$")
-plt.show()
+    plt.figure(figsize=(7, 4))
+    plt.semilogx(hs, effectivity, "o-")
+    plt.gca().invert_xaxis()
+    plt.xlabel(r"$h$")
+    plt.ylabel("Effectivity")
+    plt.grid(True, which="both")
+    plt.title(r"Effectivity $\Delta_N / \|u_h-u_N\|_X$")
+    plt.show()

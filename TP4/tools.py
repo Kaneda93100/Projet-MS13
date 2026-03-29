@@ -8,10 +8,6 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import random
 
-
-import numpy as np
-import matplotlib.pyplot as plt
-
 from skfem import MeshTri, Basis, asm, enforce,solve
 from skfem.element import ElementTriP1
 from skfem.helpers import dot, grad
@@ -75,6 +71,86 @@ def FEMsolve(A1, A2, b, basis, mu):
     A_bc, b_bc = enforce(A, b, D=(basis.mesh).boundary_nodes()) # enforce boundary condition
     u = solve(A_bc, b_bc) # solve
     return u
+
+
+
+from scipy.sparse.linalg import spsolve
+
+def alpha_LB(mu):
+    """
+    Lower bound of a
+    """
+    return min(1,mu)
+
+
+def get_interior_dofs(basis):
+    """
+    Interior DDL ( since test functions in H^1_0)
+    """
+    D = basis.get_dofs().all()
+    I = np.setdiff1d(np.arange(basis.N), D)
+    return D, I
+
+
+def RB_solve_certified(Phi, A1, A2, F, basis, mu):
+   
+    D, I = get_interior_dofs(basis)
+
+    # Full matrices
+    A = mu*A1 + A2
+    
+    @BilinearForm
+    def Stiffness(u, v):
+        return dot(grad(u), grad(v))
+    X = Stiffness.assemble(basis)  # Matrix for the norm ||.||_X
+
+    # Interior DDL restriction
+    A_I = A[I][:, I]
+    X_I = X[I][:, I]
+    F_I = F[I]
+
+    # Restricted reduced basis
+    Phi_I = Phi[I,:]
+    ReducedBasis_I = Phi_I
+    # Reduce system
+    
+    A_rb = (ReducedBasis_I.T@A_I)@ReducedBasis_I
+    F_rb = ReducedBasis_I.T@F_I
+
+    coeff = np.linalg.solve(A_rb, F_rb)
+
+    # ROM reconstructed
+    u_rb_I = ReducedBasis_I@coeff 
+    u_rb = np.zeros(basis.N) # 0 at the boundary 
+    u_rb[I] = u_rb_I
+
+    # Interior residual
+    r_I = F_I - A_I@u_rb_I
+
+    # Dual norm of the residual : sqrt(r^T X^{-1} r)
+    z =  spla.inv(X_I)
+    dual_norm = np.sqrt((r_I.T@z)@r_I)
+
+    # Estimateur certifié
+    Delta_N = dual_norm/alpha_LB(mu) # 1/alpha * 
+
+    return u_rb, coeff, dual_norm, Delta_N
+
+
+def true_error_X_norm(U_fem, U_rb, A1, A2, basis):
+    """
+    Error with 
+    X = A1 + A2.
+    """
+    D, I = get_interior_dofs(basis)
+    X = A1 + A2
+    X_I = X[I][:, I]
+
+    e_I = U_fem[I] - U_rb[I]
+    err_X = e_I.T@X_I@e_I
+    return np.sqrt(err_X)
+
+
 
 """
 POD
