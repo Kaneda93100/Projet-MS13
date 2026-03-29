@@ -245,8 +245,9 @@ def project_L2(u_full,Phi,Nx,Ny):
     return a, u_proj
 
 
-def solve_tpfa_rom(mu, Nx, Ny, Phi, A, l): ## Rom --> Reduced Order Model
-    
+def solve_tpfa_rom(mu, Nx, Ny, Phi): ## Rom --> Reduced Order Model
+    _,_,A,l = assemble_tpfa(Nx, Ny, mu)
+
     A_mu = Phi.transpose()@A@Phi 
     l_mu = Phi.transpose()@l
 

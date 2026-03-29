@@ -226,8 +226,9 @@ def RB_solve_certified(Phi, A1, A2, F, basis, mu):
     A = mu*A1 + A2
     
     @BilinearForm
-    def Stiffness(u, v):
+    def Stiffness(u, v,_):
         return dot(grad(u), grad(v))
+    
     X = Stiffness.assemble(basis)  # Matrix for the norm ||.||_X
 
     # Interior DDL restriction

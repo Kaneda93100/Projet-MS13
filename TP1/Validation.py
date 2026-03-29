@@ -89,7 +89,6 @@ plt.legend()
 plt.grid(True)
 plt.show()
 
-exit(-1)
 
 #### Convergence
 

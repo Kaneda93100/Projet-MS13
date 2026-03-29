@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 ## Fonction de référence
-delta = 0.001
+delta = 0.01
 def f(x,mu, delta) : 
     return np.tanh((x-mu)/delta)
 
@@ -63,7 +63,6 @@ plt.ylabel("mu |-> u(x,mu)")
 plt.tight_layout()
 plt.show()
 
-exit(-1)
 
 """ OFFLINE """
 """ POD """
