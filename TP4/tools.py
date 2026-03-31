@@ -167,7 +167,6 @@ def Construct_RB(m, NumberOfSnapshots=5,NumberOfModes=3, seed = random.seed(42))
     for i in range(NumberOfSnapshots):
         mu = 10*random.random() #random coefficient in [0, 10] 
         Snapshots[:,i] = FEMsolve(A1, A2, b, basis, mu)
-        x = 0
         
        
     print("last parameter:",mu)

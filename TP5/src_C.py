@@ -26,12 +26,14 @@ from skfem.helpers import dot, grad
 from skfem.assembly import BilinearForm, LinearForm
 from skfem import solve
 
+PLOT = True
+
 # -----------------------
 # Problem setup
 # -----------------------
 
-Nx = 10
-Ny = 10
+Nx = 50
+Ny = 50
 
 # Maillage triangulaire du carré (0,1)^2
 m = MeshTri.init_tensor(
@@ -59,12 +61,13 @@ print("Time :", end - start, "secondes")
 # -----------------------
 # Plot
 # -----------------------
-fig, ax = plt.subplots(figsize=(6, 5))
-m.plot(u, ax=ax, shading='gouraud')
-ax.set_title(f"Solution FEM 2D, mu = {mu}")
-ax.set_xlabel("x")
-ax.set_ylabel("y")
-plt.show()
+if(PLOT):
+    fig, ax = plt.subplots(figsize=(6, 5))
+    m.plot(u, ax=ax, shading='gouraud')
+    ax.set_title(f"Solution FEM 2D, mu = {mu}")
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    plt.show()
 
 ############
 """ POD """
@@ -80,19 +83,21 @@ m = MeshTri.init_tensor(
 Phi=t.Construct_RB(m=m,mu=mu,NumberOfSnapshots=100,NumberOfModes=6)
 ReducedBasis=Phi.T              
 
+print(np.shape(ReducedBasis))
+
 fig, ax = plt.subplots()
 
-im=m.plot(ReducedBasis[:,0], ax=ax, shading='gouraud',colorbar=True)
+im=m.plot(ReducedBasis[0,:], ax=ax, shading='gouraud',colorbar=True)
 fig, ax = plt.subplots()
 
-m.plot(ReducedBasis[:,1], ax=ax, shading='gouraud',colorbar=True)
+m.plot(ReducedBasis[1,:], ax=ax, shading='gouraud',colorbar=True)
 
 plt.show()
 
 
 def solve_fem_rom(mu, Phi,m):
     
-    A_off = Phi.T@(mu*A1 + A2)@Phi
+    A_off = Phi.T@(mu)@Phi
     b_off = Phi.T@b
 
     a = np.linalg.solve(A_off, b_off)

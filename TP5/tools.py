@@ -46,13 +46,10 @@ def rhs(v, w):
 def diffusion(u, v, w):
     return  dot(grad(u),grad(v))
 
-mu_l = lambda x,y: (x<0.5)*( (y<0.5)*1 +(y>0.5)*2) + (x>0.5)*( (y<0.5)*3 + (y>0.5)*4 )
-
 @BilinearForm
 def diffusion_mu(u, v, w):
-    # mu en fonction de x
-    mu = mu_l(w.x[0],w.x[1])
-    return mu*dot(grad(u),grad(v))
+    A = lambda w: 1/(   (w.x[0]-w.mu1)**2 + (w.x[1]-w.mu2)**2 ) 
+    return A(w)*dot(grad(u),grad(v))
 
 
 
@@ -61,7 +58,7 @@ def diffusion_mu(u, v, w):
 # -----------------------
 def FEMassembling(m,mu):
     basis = Basis(m, ElementTriP1())
-    A11 = asm(diffusion_mu, basis,mu1=mu[0],mu2=mu[1])   # on Omega_11    
+    A11= asm(diffusion_mu, basis,   mu1=mu[0],mu2=mu[1])
     b = asm(rhs, basis)                #  g = 1
     
     return A11, b, basis
@@ -79,31 +76,24 @@ def FEMsolve(A11, b, basis, mu):
 
 def Construct_RB(m,mu,NumberOfSnapshots=100,NumberOfModes=20):
 
-    #print("number of modes: ",NumberOfModes)
+    print("number of modes: ",NumberOfModes)
     basis = Basis(m, ElementTriP1())
-    A,b,basis = FEMassembling(m,mu)
-    
-    Snapshots=np.zeros((m.nvertices, NumberOfSnapshots))
-    for i in range(NumberOfSnapshots):
-        mu = 10*(np.random.rand() + 1) #random coefficient in [1,10] 
-        U = FEMsolve(A,b,m,mu)
 
-        Snapshots[:,i] = U
+    A1,b,basis = FEMassembling(m,mu)
+  
+    Snapshots = np.zeros((m.nvertices, NumberOfSnapshots))
+    for i in range(NumberOfSnapshots):
+        mu_r = np.random.uniform(mu[0],mu[1]) #random coefficient in [0, 10] 
+        Snapshots[:,i] = FEMsolve(A1, b, basis, mu_r)
         
-    # print("last parameter:",mu)
+       
+    print("last parameter:",mu_r)
 
     ## SVD ##
-
-    #(u,v)_L2=v^T M u
-    @BilinearForm
-    def massVelocity(u, v, _):
-        return u*v
     
-    L2=massVelocity.assemble(basis)
-
-    # We first compute the correlation matrix C_ij = (u_i,u_j)
-    C = Snapshots.T@L2@Snapshots        #Q: a quel point est on sûr de la formule ?
-
+    L2=massMatrix.assemble(basis)
+    
+    C = Snapshots.T@Snapshots
     if(C.shape != (NumberOfSnapshots, NumberOfSnapshots)) :
         print("La matrice de corrélation n'est pas de la bonne taaaaaaaille. Recommences.\n")
         exit(-1)
@@ -113,7 +103,6 @@ def Construct_RB(m,mu,NumberOfSnapshots=100,NumberOfModes=20):
     ## Vecteur propre stocké en colonne
 
     idx = EigenValues.argsort()[::-1] # sort the eigenvalues
-    print(idx,"idx \n")
     TotEigenValues = EigenValues[idx] # Valeurs propres réordonnées
     TotEigenVectors = EigenVectors[:, idx] # Réordonnement selon les valeurs propres
 
@@ -121,7 +110,7 @@ def Construct_RB(m,mu,NumberOfSnapshots=100,NumberOfModes=20):
     EigenValues = np.array([TotEigenValues[i] for i in range(NumberOfModes)]) # On prend les NumberOfModes première valeurs
     EigenVectors = np.array([TotEigenVectors[:,i] for i in range(NumberOfModes)]) # Les vecteurs propres associés
 
-    print("eigenvalues: ",EigenValues)
+    #print("eigenvalues: ",EigenValues)
 
     RIC = 1 - sum(EigenValues[i] for i in range(NumberOfModes))/sum(lbd for lbd in TotEigenValues) #must be close to 0
     print("Relativ Information Content (must be close to 0): ",RIC)
@@ -133,9 +122,6 @@ def Construct_RB(m,mu,NumberOfSnapshots=100,NumberOfModes=20):
     
     ReducedBasis = Snapshots@ChangeOfBasisMatrix 
 
-    #Id = ReducedBasis.T @ L2 @ ReducedBasis
-    #print(np.allclose(Id, np.eye(NumberOfModes)))
-    # orthogonality test
     return ReducedBasis
 
 
